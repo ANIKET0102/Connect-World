@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import LandingPage from './components/LandingPage';
 import RoomPage from './components/RoomPage';
@@ -9,8 +9,8 @@ import './index.css';
 let backendUrl = import.meta.env.DEV ? `http://${window.location.hostname || 'localhost'}:5000` : '/';
 
 if (window.location.protocol === 'file:') {
-  // If running as a packaged desktop app, point to a hosted backend or localhost for testing
-  backendUrl = 'http://localhost:5000'; 
+  // Desktop App connects to the live cloud server
+  backendUrl = 'https://connect-world-r2tv.onrender.com'; 
 }
 
 const socket = io(backendUrl);
@@ -28,8 +28,10 @@ function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
+  const Router = window.location.protocol === 'file:' ? HashRouter : BrowserRouter;
+
   return (
-    <BrowserRouter>
+    <Router>
       <button className="theme-toggle-btn" onClick={toggleTheme}>
         {theme === 'dark' ? '☀️' : '🌙'}
       </button>
@@ -37,7 +39,7 @@ function App() {
         <Route path="/" element={<LandingPage socket={socket} />} />
         <Route path="/room/:code" element={<RoomPage socket={socket} />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 
