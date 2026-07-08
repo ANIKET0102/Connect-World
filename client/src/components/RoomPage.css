@@ -458,3 +458,177 @@
   box-shadow: 0 10px 20px rgba(0,0,0,0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+/* Responsive Media Queries */
+
+/* TV and Large Screens */
+@media (min-width: 1600px) {
+  .room-container {
+    max-width: 1500px;
+  }
+  .left-panel {
+    flex: 2.2;
+  }
+  .right-panel {
+    flex: 1;
+    height: calc(100vh - 160px);
+  }
+}
+
+/* Tablets & Small Laptops (Stack Layout) */
+@media (max-width: 1024px) {
+  .room-container {
+    padding: 16px;
+  }
+  
+  .room-content-split {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .left-panel {
+    flex: none;
+    width: 100%;
+  }
+
+  .right-panel {
+    flex: none;
+    width: 100%;
+    height: auto; /* Reset desktop fixed height */
+    gap: 20px;
+  }
+
+  .queue-section, .chat-section {
+    height: 380px;
+    max-height: 400px;
+  }
+}
+
+/* Medium Screens - Header Wrapping */
+@media (max-width: 850px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .room-code-display {
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding-right: 56px;
+  }
+
+  .header-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    width: 100%;
+  }
+  
+  .top-search-form {
+    flex: 1;
+  }
+
+  .header-actions > .btn {
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .top-search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    margin-top: 8px;
+  }
+}
+
+/* Small Tablets / Large Phones */
+@media (max-width: 768px) {
+  .preview-content {
+    flex-direction: column-reverse;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .preview-thumbnail {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+  
+  .preview-text {
+    width: 100%;
+  }
+
+  .preview-text h3 {
+    font-size: clamp(1.2rem, 5vw, 1.6rem);
+  }
+  
+  .preview-text p {
+    font-size: 0.95rem;
+  }
+  
+  .preview-text h5 {
+    font-size: 0.8rem;
+  }
+
+  .empty-player-state {
+    padding: 24px;
+  }
+  
+  .empty-player-state h2 {
+    font-size: 1.5rem;
+  }
+
+  .player-wrapper.empty-wrapper {
+    aspect-ratio: auto;
+    min-height: 300px;
+  }
+}
+
+/* Phones */
+@media (max-width: 600px) {
+  .header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .header-actions > .btn {
+    width: 100%;
+  }
+
+  .top-search-form {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .top-search-form .btn {
+    width: 100%;
+  }
+
+  .room-code-display h2 {
+    font-size: 1.2rem;
+    padding: 8px 16px;
+  }
+
+  .copy-btn {
+    padding: 0 12px;
+  }
+
+  .btn {
+    padding: 12px 16px;
+    font-size: 1rem;
+  }
+
+  .glass-panel {
+    padding: 16px;
+  }
+
+  .queue-section, .chat-section {
+    height: 320px;
+  }
+}

@@ -50,12 +50,14 @@ io.on('connection', (socket) => {
     };
     
     socket.join(roomCode);
-    socket.emit('room_created', roomCode);
+    socket.emit('room_created', { roomCode });
     console.log(`Room created: ${roomCode} by ${socket.id}`);
   });
 
   // Join an existing room
-  socket.on('join_room', (roomCode) => {
+  socket.on('join_room', (data) => {
+    const roomCode = typeof data === 'object' ? data.roomCode : data;
+
     const room = rooms[roomCode];
     if (room) {
       if (room.deletionTimeout) {
@@ -66,10 +68,11 @@ io.on('connection', (socket) => {
         room.users.push(socket.id);
       }
       socket.join(roomCode);
+      
       socket.emit('room_joined', room);
       console.log(`User ${socket.id} joined room ${roomCode}`);
     } else {
-      socket.emit('error', 'Room not found. Invalid code.');
+      socket.emit('error', { type: 'NOT_FOUND', message: 'Room not found. Invalid code.' });
     }
   });
 
@@ -145,7 +148,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('get_room_state', (roomCode) => {
+  socket.on('get_room_state', (data) => {
+    const roomCode = typeof data === 'object' ? data.roomCode : data;
+
     const room = rooms[roomCode];
     if (room) {
       if (room.deletionTimeout) {
@@ -157,7 +162,10 @@ io.on('connection', (socket) => {
       if (!room.users.includes(socket.id)) {
         room.users.push(socket.id);
       }
+
       socket.emit('room_state_sync', room);
+    } else {
+      socket.emit('error', { type: 'NOT_FOUND', message: 'Room not found. Invalid code.' });
     }
   });
 

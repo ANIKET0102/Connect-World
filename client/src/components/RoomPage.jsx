@@ -13,6 +13,7 @@ function RoomPage({ socket }) {
   const [queue, setQueue] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
   
   // Chat state
   const [messages, setMessages] = useState([]);
@@ -42,7 +43,7 @@ function RoomPage({ socket }) {
     if (!socket) return;
     
     // Fetch room state in case of refresh
-    socket.emit('get_room_state', code);
+    socket.emit('get_room_state', { roomCode: code });
 
     socket.on('room_state_sync', (room) => {
       if (room.videoId) setVideoId(room.videoId);
@@ -67,6 +68,7 @@ function RoomPage({ socket }) {
 
     socket.on('search_results', (results) => {
       setSearchResults(results);
+      setIsSearching(false);
     });
 
     socket.on('queue_updated', (updatedQueue) => {
@@ -77,13 +79,23 @@ function RoomPage({ socket }) {
       setMessages(prev => [...prev, msg]);
     });
 
+    socket.on('error', (err) => {
+      if (err && typeof err === 'object') {
+        if (err.type === 'NOT_FOUND') {
+          alert(err.message);
+          navigate('/');
+        }
+      }
+    });
+
     return () => {
       socket.off('room_state_sync');
       socket.off('search_results');
       socket.off('queue_updated');
       socket.off('new_message');
+      socket.off('error');
     };
-  }, [socket, code]);
+  }, [socket, code, navigate]);
 
   useEffect(() => {
     if (!socket || !player) return;
@@ -169,6 +181,9 @@ function RoomPage({ socket }) {
       }
       setTimeout(() => { isSyncing.current = false; }, 500);
       setInitialSync(null);
+    } else {
+      // Force play if we just added a new video locally
+      event.target.playVideo();
     }
   };
 
@@ -178,6 +193,18 @@ function RoomPage({ socket }) {
 
   const onPause = (event) => {
     // Event handled centrally in onStateChange
+  };
+
+  const onError = (event) => {
+    // Alert ALL errors so we know exactly why it is showing a blank screen
+    let errorMsg = "Unknown Error";
+    if (event.data === 2) errorMsg = "Invalid video ID.";
+    if (event.data === 5) errorMsg = "HTML5 player error.";
+    if (event.data === 100) errorMsg = "Video not found or deleted.";
+    if (event.data === 101 || event.data === 150) errorMsg = "The copyright owner blocked this video from playing on external websites.";
+    
+    alert(`YouTube Player Error: ${errorMsg}\n\nSkipping to next song...`);
+    socket.emit('play_next', { roomCode: code });
   };
 
   const onStateChange = (event) => {
@@ -206,24 +233,34 @@ function RoomPage({ socket }) {
     const query = searchQuery.trim();
     if (!query) return;
 
-    // Support for direct YouTube URL pasting
+    let v = null;
     try {
       const urlObj = new URL(query);
-      const v = urlObj.searchParams.get('v');
-      if (v) {
-        const mockVideo = {
-          videoId: v,
-          title: "Linked Video",
-          author: "URL",
-          thumbnail: `https://img.youtube.com/vi/${v}/hqdefault.jpg`
-        };
-        addToQueue(mockVideo);
-        return;
+      if (urlObj.hostname.includes('youtube.com')) {
+        if (urlObj.pathname.includes('/shorts/')) {
+          v = urlObj.pathname.split('/shorts/')[1].split('?')[0];
+        } else {
+          v = urlObj.searchParams.get('v');
+        }
+      } else if (urlObj.hostname.includes('youtu.be')) {
+        v = urlObj.pathname.substring(1).split('?')[0];
       }
     } catch(err) {
-      // Not a URL, fallback to text search
+      // Not a valid URL, v remains null
+    }
+    
+    if (v && v.length === 11) {
+      const mockVideo = {
+        videoId: v,
+        title: "Pasted Video Link",
+        author: "Direct URL",
+        thumbnail: `https://img.youtube.com/vi/${v}/hqdefault.jpg`
+      };
+      addToQueue(mockVideo);
+      return; // Instant!
     }
 
+    setIsSearching(true);
     socket.emit('search_song', query);
   };
 
@@ -304,6 +341,8 @@ function RoomPage({ socket }) {
     return () => socket.off('sync_video');
   }, [socket]);
 
+
+
   return (
     <div className="room-container">
       <div className="header">
@@ -326,8 +365,16 @@ function RoomPage({ socket }) {
               className="url-input"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSearch(e);
+                }
+              }}
             />
-            <button type="submit" className="btn primary-btn">Search</button>
+            <button type="submit" className="btn primary-btn" disabled={isSearching}>
+              {isSearching ? 'Searching...' : 'Search'}
+            </button>
           </form>
           <button className="btn secondary-btn" onClick={exitRoom}>Exit</button>
         </div>
@@ -356,13 +403,27 @@ function RoomPage({ socket }) {
       
       <div className="room-content-split">
         <div className="left-panel">
-          <div className="player-wrapper">
+          <div className={`player-wrapper ${!videoId ? 'empty-wrapper' : ''}`}>
             {videoId ? (
               <YouTube 
+                key={videoId}
                 videoId={videoId} 
-                opts={{ width: '100%', height: '100%', playerVars: { autoplay: 1, disablekb: 1 } }} 
+                opts={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  host: 'https://www.youtube-nocookie.com',
+                  playerVars: { 
+                    autoplay: 1, 
+                    disablekb: 1,
+                    controls: 1,
+                    rel: 0,
+                    enablejsapi: 1,
+                    origin: window.location.origin
+                  } 
+                }} 
                 onReady={onReady}
                 onStateChange={onStateChange}
+                onError={onError}
                 className="youtube-player"
               />
             ) : (
@@ -385,6 +446,14 @@ function RoomPage({ socket }) {
                   <h5>Coming Up Next</h5>
                   <h3>{queue[0].title}</h3>
                   <p>{queue[0].author}</p>
+                  <button 
+                    type="button" 
+                    className="btn primary-btn" 
+                    style={{ marginTop: '16px', padding: '10px 20px', width: 'max-content' }}
+                    onClick={() => socket.emit('play_next', { roomCode: code })}
+                  >
+                    Play Next Song ⏭
+                  </button>
                 </div>
                 <img src={queue[0].thumbnail} alt={queue[0].title} className="preview-thumbnail" />
               </div>
@@ -394,7 +463,18 @@ function RoomPage({ socket }) {
 
         <div className="right-panel">
           <div className="queue-section glass-panel">
-            <h3>Up Next ({queue.length})</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0 }}>Up Next ({queue.length})</h3>
+              {queue.length > 0 && (
+                <button 
+                  type="button" 
+                  className="btn secondary-btn small-btn"
+                  onClick={() => socket.emit('play_next', { roomCode: code })}
+                >
+                  Skip ⏭
+                </button>
+              )}
+            </div>
             <div className="queue-list">
               {queue.length === 0 ? <p className="empty-queue">Queue is empty. Search to add songs!</p> : null}
               {queue.map((video, idx) => {

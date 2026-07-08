@@ -16,16 +16,20 @@ function LandingPage({ socket }) {
   }, []);
 
   useEffect(() => {
-    socket.on('room_created', (code) => {
+    socket.on('room_created', ({ roomCode: code }) => {
       navigate(`/room/${code}`);
     });
 
-    socket.on('room_joined', (room) => {
+    socket.on('room_joined', () => {
       navigate(`/room/${roomCode}`);
     });
 
-    socket.on('error', (msg) => {
-      setError(msg);
+    socket.on('error', (err) => {
+      if (err && typeof err === 'object') {
+        setError(err.message || 'An error occurred');
+      } else {
+        setError(err);
+      }
     });
 
     return () => {
@@ -35,14 +39,15 @@ function LandingPage({ socket }) {
     };
   }, [socket, navigate, roomCode]);
 
-  const handleCreateRoom = () => {
+  const handleCreateRoomClick = () => {
     socket.emit('create_room');
   };
 
   const handleJoinRoom = (e) => {
     e.preventDefault();
     if (roomCode.length === 6) {
-      socket.emit('join_room', roomCode);
+      setError('');
+      socket.emit('join_room', { roomCode });
     } else {
       setError('Please enter a valid 6-digit code');
     }
@@ -58,6 +63,7 @@ function LandingPage({ socket }) {
           </div>
         </div>
       )}
+      
       <div className="landing-content">
         <div className="landing-header">
           <h1 className="title">Music<span>World</span></h1>
@@ -71,7 +77,7 @@ function LandingPage({ socket }) {
             </div>
             <h3>Create a Room</h3>
             <p>Create a new room and invite your friends to listen.</p>
-            <button className="btn primary-btn" onClick={handleCreateRoom}>
+            <button className="btn primary-btn" onClick={handleCreateRoomClick}>
               Generate Room Code
             </button>
           </div>
