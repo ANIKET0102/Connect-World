@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LandingPage.css';
 
@@ -8,6 +8,11 @@ function LandingPage({ socket }) {
   const [showWelcome, setShowWelcome] = useState(true);
   const navigate = useNavigate();
 
+  const roomCodeRef = useRef(roomCode);
+  useEffect(() => {
+    roomCodeRef.current = roomCode;
+  }, [roomCode]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowWelcome(false);
@@ -16,11 +21,13 @@ function LandingPage({ socket }) {
   }, []);
 
   useEffect(() => {
-    socket.on('room_created', ({ roomCode: code }) => {
+    socket.on('room_created', (data) => {
+      const code = (data && typeof data === 'object') ? data.roomCode : data;
       navigate(`/room/${code}`);
     });
 
-    socket.on('room_joined', ({ roomCode: code }) => {
+    socket.on('room_joined', (data) => {
+      const code = (data && typeof data === 'object' && data.roomCode) ? data.roomCode : roomCodeRef.current;
       navigate(`/room/${code}`);
     });
 
