@@ -56,7 +56,8 @@ io.on('connection', (socket) => {
 
   // Join an existing room
   socket.on('join_room', (data) => {
-    const roomCode = typeof data === 'object' ? data.roomCode : data;
+    let roomCode = typeof data === 'object' ? data.roomCode : data;
+    if (roomCode) roomCode = roomCode.toString().trim();
 
     const room = rooms[roomCode];
     if (room) {
@@ -149,7 +150,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('get_room_state', (data) => {
-    const roomCode = typeof data === 'object' ? data.roomCode : data;
+    let roomCode = typeof data === 'object' ? data.roomCode : data;
+    if (roomCode) roomCode = roomCode.toString().trim();
 
     const room = rooms[roomCode];
     if (room) {
