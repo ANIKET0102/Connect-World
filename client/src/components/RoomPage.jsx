@@ -43,7 +43,7 @@ function RoomPage({ socket }) {
     if (!socket) return;
     
     // Fetch room state in case of refresh
-    socket.emit('get_room_state', { roomCode: code });
+    socket.emit('get_room_state', code);
 
     socket.on('room_state_sync', (room) => {
       if (room.videoId) setVideoId(room.videoId);

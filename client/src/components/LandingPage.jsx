@@ -55,7 +55,7 @@ function LandingPage({ socket }) {
     const code = roomCode.trim();
     if (code.length === 6) {
       setError('');
-      socket.emit('join_room', { roomCode: code });
+      socket.emit('join_room', code);
     } else {
       setError('Please enter a valid 6-digit code');
     }
