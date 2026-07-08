@@ -58,6 +58,10 @@ io.on('connection', (socket) => {
   socket.on('join_room', (roomCode) => {
     const room = rooms[roomCode];
     if (room) {
+      if (room.deletionTimeout) {
+        clearTimeout(room.deletionTimeout);
+        delete room.deletionTimeout;
+      }
       if (!room.users.includes(socket.id)) {
         room.users.push(socket.id);
       }
@@ -144,6 +148,10 @@ io.on('connection', (socket) => {
   socket.on('get_room_state', (roomCode) => {
     const room = rooms[roomCode];
     if (room) {
+      if (room.deletionTimeout) {
+        clearTimeout(room.deletionTimeout);
+        delete room.deletionTimeout;
+      }
       // Re-join just in case they refreshed
       socket.join(roomCode);
       if (!room.users.includes(socket.id)) {
@@ -208,8 +216,14 @@ io.on('connection', (socket) => {
         }
 
         if (room.users.length === 0) {
-          delete rooms[code];
-          console.log(`Room ${code} deleted (empty)`);
+          // Give them 1 minute to reconnect before destroying the room
+          room.deletionTimeout = setTimeout(() => {
+            if (rooms[code] && rooms[code].users.length === 0) {
+              delete rooms[code];
+              console.log(`Room ${code} deleted (empty) after timeout`);
+            }
+          }, 60000); // 60 seconds
+          console.log(`Room ${code} scheduled for deletion in 60s`);
         }
       }
     }
