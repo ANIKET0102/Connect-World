@@ -20,8 +20,8 @@ function LandingPage({ socket }) {
       navigate(`/room/${code}`);
     });
 
-    socket.on('room_joined', () => {
-      navigate(`/room/${roomCode}`);
+    socket.on('room_joined', ({ roomCode: code }) => {
+      navigate(`/room/${code}`);
     });
 
     socket.on('error', (err) => {
@@ -37,7 +37,7 @@ function LandingPage({ socket }) {
       socket.off('room_joined');
       socket.off('error');
     };
-  }, [socket, navigate, roomCode]);
+  }, [socket, navigate]);
 
   const handleCreateRoomClick = () => {
     socket.emit('create_room');

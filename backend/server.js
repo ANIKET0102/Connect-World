@@ -69,7 +69,7 @@ io.on('connection', (socket) => {
       }
       socket.join(roomCode);
       
-      socket.emit('room_joined', room);
+      socket.emit('room_joined', { roomCode });
       console.log(`User ${socket.id} joined room ${roomCode}`);
     } else {
       socket.emit('error', { type: 'NOT_FOUND', message: 'Room not found. Invalid code.' });
